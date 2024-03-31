@@ -1,29 +1,32 @@
-FROM node:14-alpine AS builder
+# Stage 1: Build
+FROM node:alpine as build
 
-# Add a work directory
+# Membuat dirrectory baru 
 WORKDIR /app
 
-# Cache and Install dependencies
-COPY package*.json ./
-RUN npm i
+# Salin semua file yang ada di ./app
+COPY . /app
 
-# Copy app files
-COPY . .
+# Menjalankan printah untuk install depedenci
+RUN npm install
 
-# Build the app
+# Menjalankan perintah untuk building
 RUN npm run build
 
-# Bundle static assets with nginx
-FROM nginx:1.21.0-alpine as production
+# Stage 2: Production
+FROM nginx:alpine
 
-# Copy built assets from builder
-COPY --from=builder /app/build /usr/share/nginx/html
+# Salin build dari stage 1 ke root of nginx
+COPY --from=build /app/ /usr/share/nginx/html
 
-# Add your nginx.conf
-COPY /nginx/nginx.conf /etc/nginx/conf.d/default.conf
+# Hapus konfigurasi default nginx
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Expose port
+# Salin konfigurasi kustom nginx
+COPY nginx/nginx.conf /etc/nginx/conf.d
+
+# Expose port 80
 EXPOSE 80
 
-# Start nginx
+# Mulai nginx
 CMD ["nginx", "-g", "daemon off;"]
